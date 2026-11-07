@@ -28,20 +28,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            
+            <!-- دریافت فایل متنی (اشتراک‌گذاری متن) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/*" />
             </intent-filter>
+            
+            <!-- دریافت فایل JSON (اشتراک‌گذاری بکاپ) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/json" />
             </intent-filter>
+            
+            <!-- باز کردن فایل با اپ (اصلاح شده برای رفع خطای Lint) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <!-- اضافه کردن scheme برای اینکه Lint راضی بشه -->
+                <data android:scheme="content" />
                 <data android:mimeType="application/json" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
@@ -82,7 +90,6 @@
                 android:resource="@xml/next_session_widget_info" />
         </receiver>
 
-    
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
