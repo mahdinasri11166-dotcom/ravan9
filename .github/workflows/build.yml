@@ -1,4 +1,4 @@
-name: Build Release APK
+name: Build Debug APK
 
 on:
   push:
@@ -9,47 +9,45 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Setup Android SDK & Accept Licenses
-        env:
-          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-          ANDROID_HOME: /usr/local/lib/android/sdk
+      - name: Setup Android SDK (fixed)
         run: |
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools" || true
-
-      - run: chmod +x gradlew
-
-      - name: Keystore from Secrets (optional)
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > app/darmanagarno-release.jks
+          set -e
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER=$(find "$ANDROID_HOME" -name sdkmanager -type f 2>/dev/null | head -1)
+          if [ -z "$SDKMANAGER" ]; then
+            mkdir -p "$ANDROID_HOME/cmdline-tools"
+            cd /tmp
+            curl -sSLo cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+            unzip -q cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
+            mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest" || true
+            SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           fi
-          test -f app/darmanagarno-release.jks
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "build-tools;34.0.0" "platform-tools" || true
 
-      - name: Lint
-        run: ./gradlew lintDebug --stacktrace || true
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-      - name: Build Release
-        env:
-          DMN_STORE_PASSWORD: ${{ secrets.DMN_STORE_PASSWORD }}
-          DMN_KEY_PASSWORD: ${{ secrets.DMN_KEY_PASSWORD }}
-          DMN_KEY_ALIAS: ${{ secrets.DMN_KEY_ALIAS }}
-        run: ./gradlew assembleRelease --stacktrace
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
         with:
-          name: ravan9-release
-          path: app/build/outputs/apk/release/*.apk
+          name: Darmanagarno-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
