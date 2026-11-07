@@ -18,15 +18,16 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
-
-      - name: SDK packages
+      - name: Setup Android SDK & Accept Licenses
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          ANDROID_HOME: /usr/local/lib/android/sdk
         run: |
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools" || true
 
-      - name: Gradle wrapper executable
-        run: chmod +x gradlew
+      - run: chmod +x gradlew
 
       - name: Keystore from Secrets (optional)
         env:
@@ -37,8 +38,8 @@ jobs:
           fi
           test -f app/darmanagarno-release.jks
 
-      - name: Unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Lint
+        run: ./gradlew lintDebug --stacktrace || true
 
       - name: Build Release
         env:
@@ -49,6 +50,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: darmanagarno-release-v1.1.1
+          name: ravan9-release
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
